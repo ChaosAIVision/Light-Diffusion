@@ -253,35 +253,8 @@ wandb/
 
 ## 🔧 Troubleshooting
 
-### Common Issues:
 
-**1. OOM (Out of Memory)**
-```
-RuntimeError: CUDA out of memory
-```
-**Solutions:**
-- Reduce `train_batch_size` from 4 to 2 or 1
-- Use `mixed_precision: fp16`
-- Set `dataloader_num_workers: 0`
-
-**2. Model not found**
-```
-OSError: botp/stable-diffusion-v1-5-inpainting does not appear to have a file named diffusion_pytorch_model.bin
-```
-**Solutions:**
-- Check internet connection
-- Try alternative model: `runwayml/stable-diffusion-v1-5`
-
-**3. Dataset path does not exist**
-```
-FileNotFoundError: [Errno 2] No such file or directory
-```
-**Solutions:**
-- Check paths in CSV file
-- Use absolute paths
-- Ensure file read permissions
-
-**4. W&B authentication**
+**1. W&B authentication**
 ```
 wandb: ERROR Unable to authenticate
 ```
