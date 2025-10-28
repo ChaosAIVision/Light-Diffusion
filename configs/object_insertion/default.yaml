@@ -1,0 +1,46 @@
+# Example configuration for object insertion training
+model:
+  pretrained_model_name_or_path: botp/stable-diffusion-v1-5-inpainting
+  unet_model_name_or_path: "botp/stable-diffusion-v1-5-inpainting"
+  vae_model_name_or_path: "madebyollin/taesd"
+  is_small_vae: true
+
+output_dir: outputs/object_insertion
+seed: 42
+image_size: 512
+train_batch_size: 1
+num_train_epochs: 6
+
+# Optimization
+use_adam8bit: true
+learning_rate: 5.0e-5
+adam_beta1: 0.9
+adam_beta2: 0.999
+adam_weight_decay: 0.01
+adam_epsilon: 1.0e-08
+max_grad_norm: 1.0
+
+# Scheduler
+lr_scheduler: constant
+lr_warmup_steps: 500
+lr_num_cycles: 1
+lr_power: 1.0
+prediction_type: epsilon
+
+# Loader
+dataloader_num_workers: 0
+
+# Checkpointing and logging
+checkpointing_steps: 500
+checkpoints_total_limit: 1
+resume_from_checkpoint: null
+report_to: wandb
+mixed_precision: no
+
+# Data
+embedding_dir: outputs/object_insertion
+train_data_csv_path: /home/chaos/Documents/chaos/repo/Light-Diffusion/dataset/object_insertion/train_dataset.csv
+valid_data_csv_path: /home/chaos/Documents/chaos/repo/Light-Diffusion/dataset/object_insertion/train_dataset.csv
+
+# project wandb
+wandb_name: 'Train object insertion 50 sample'
