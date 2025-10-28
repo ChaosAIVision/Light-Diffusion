@@ -22,7 +22,7 @@ Light-Diffusion is a training framework for object insertion using diffusion mod
 
 ### Step 1: Clone repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/ChaosAIVision/Light-Diffusion.git
 cd Light-Diffusion
 ```
 
