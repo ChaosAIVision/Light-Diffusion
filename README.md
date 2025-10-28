@@ -192,6 +192,32 @@ Epoch 1/1: 100%|████████| 50/50 [02:30<00:00, 0.33it/s, loss=0.1
 - Model checkpoints
 - System metrics
 
+## 🧠 VRAM Optimization
+
+This framework implements several techniques to minimize VRAM usage during training:
+
+### 1. Preprocessed Data Ready
+- **Benefit**: Training process doesn't waste VRAM on models like text encoder, tokenize, etc.
+- **How it works**: All embeddings are precomputed and saved to disk before training starts
+- **Implementation**: Set `embedding_dir` in config to save/load preprocessed embeddings
+
+### 2. Partial Model Training
+- **Benefit**: Only trains part of the model, not the full model, still effective
+- **How it works**: Freezes VAE weights and trains only attention layers in UNet
+
+### 3. Adam8bit Optimizer
+- **Benefit**: Uses 8-bit precision for optimizer states, reducing memory footprint
+- **How it works**: Quantizes optimizer parameters to 8 bits instead of 32 bits
+- **Implementation**: Set `use_adam8bit: true` in config (requires bitsandbytes)
+
+### 4. Tiny VAE
+- **Benefit**: Smaller VAE model consumes significantly less VRAM
+- **How it works**: Uses compressed VAE architecture (madebyollin/taesd)
+- **Implementation**: Set `vae_model_name_or_path: "madebyollin/taesd"` and `is_small_vae: true`
+
+### Combined Effect
+With all optimizations enabled, VRAM usage can be reduced by **50-70%** compared to standard diffusion training, enabling training on consumer GPUs with 8GB+ VRAM.
+
 ## 📈 Monitoring
 
 ### W&B Integration
