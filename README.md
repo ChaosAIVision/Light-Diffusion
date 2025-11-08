@@ -360,9 +360,18 @@ train_batch_size: 4  # For actual training
 This example demonstrates object insertion training using Stable Diffusion Inpainting 1.5 with a real-world dataset.
 
 **Input Images:**
-- **Mask**: `assert/mask_train.jpg` - Defines the insertion region
-- **Object Image**: `assert/object_image_6.png` - Object to be inserted into the scene
-- **Target Image**: `assert/image_train.jpg` - Final composite result (ground truth)
+
+| Mask | Object Image |
+|------|--------------|
+| ![Mask](assert/mask_train.jpg) | ![Object Image](assert/object_image_6.png) |
+| Defines the insertion region | Object to be inserted into the scene |
+
+**Results:**
+
+| Model Prediction | Ground Truth |
+|-----------------|--------------|
+| ![Model Prediction](assert/image_train.jpg) | ![Ground Truth](assert/target_image_21.png) |
+| Model output after training | Expected result (ground truth) |
 
 **Training Configuration:**
 ```yaml
@@ -382,8 +391,14 @@ learning_rate: 5.0e-5
 **Dataset Format:**
 ```csv
 target_image,object_image,mask
-/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/image_train.jpg,/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/object_image_6.png,/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/mask_train.jpg
+/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/target_image_21.png,/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/object_image_6.png,/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/mask_train.jpg
 ```
+
+**Note:** 
+- `target_image`: Ground truth image (expected final result)
+- `object_image`: Object to be inserted
+- `mask`: Mask defining insertion region
+- Model prediction is saved separately during inference
 
 **Training Process:**
 1. **Preprocessing**: VAE encodes images to latents, text encoder processes prompts
