@@ -11,14 +11,24 @@ Light-Diffusion is a training framework for object insertion using diffusion mod
 - [Training Workflow](#training-workflow)
 - [Monitoring](#monitoring)
 - [Troubleshooting](#troubleshooting)
+- [Example Training Results](#example-training-results)
+- [Roadmap](#roadmap)
 
 ## 🚀 Installation
 
 ### System Requirements
 - Python 3.10+
-- CUDA-capable GPU (RTX 3060+ recommended)
+- CUDA-capable GPU with **minimum 8GB VRAM** (RTX 3060+ recommended)
 - Minimum 16GB RAM
-- At least 50GB free storage
+
+### Minimum GPU Configuration (8GB VRAM)
+The framework is optimized to train on GPUs with as little as 8GB VRAM:
+- **Model size**: 49.1M parameters
+- **Image size**: 512 x 512
+- **Batch size**: 1
+- **Gradient accumulation**: 4 (equivalent to batch size 4)
+- **Optimizer**: AdamW8bit
+- **Mixed precision**: bf16 or fp16
 
 ### Step 1: Clone repository
 ```bash
@@ -147,9 +157,11 @@ wandb_name: 'Your Project Name'
 - `is_small_vae`: true if using tiny VAE
 
 **Training Parameters:**
-- `image_size`: Image resolution (512x512 or 1024x1024)
-- `train_batch_size`: Batch size (reduce if OOM occurs)
+- `image_size`: Image resolution (512x512 recommended for 8GB VRAM)
+- `train_batch_size`: Batch size (1 recommended for 8GB VRAM)
+- `gradient_accumulation_steps`: 4 (to simulate batch size 4)
 - `mixed_precision`: bf16 or fp16 for memory efficiency
+- `use_adam8bit`: true (required for 8GB VRAM training)
 
 **Paths:**
 - `embedding_dir`: null to generate new, or path to use existing embeddings
@@ -216,7 +228,17 @@ This framework implements several techniques to minimize VRAM usage during train
 - **Implementation**: Set `vae_model_name_or_path: "madebyollin/taesd"` and `is_small_vae: true`
 
 ### Combined Effect
-With all optimizations enabled, VRAM usage can be reduced by **50-70%** compared to standard diffusion training, enabling training on consumer GPUs with 8GB+ VRAM.
+With all optimizations enabled, VRAM usage can be reduced by **50-70%** compared to standard diffusion training, enabling training on consumer GPUs with **8GB VRAM**.
+
+### Example Configuration for 8GB VRAM
+```yaml
+image_size: 512
+train_batch_size: 1
+gradient_accumulation_steps: 4
+use_adam8bit: true
+mixed_precision: bf16
+# Model has ~49.1M trainable parameters
+```
 
 ## 📈 Monitoring
 
@@ -253,8 +275,37 @@ wandb/
 
 ## 🔧 Troubleshooting
 
+### Common Issues:
 
-**1. W&B authentication**
+**1. OOM (Out of Memory)**
+```
+RuntimeError: CUDA out of memory
+```
+**Solutions:**
+- Use recommended 8GB VRAM config: `train_batch_size: 1`, `gradient_accumulation_steps: 4`
+- Use `mixed_precision: fp16` or `bf16`
+- Set `dataloader_num_workers: 0`
+- Enable `use_adam8bit: true`
+- Use tiny VAE: `vae_model_name_or_path: "madebyollin/taesd"`
+
+**2. Model not found**
+```
+OSError: botp/stable-diffusion-v1-5-inpainting does not appear to have a file named diffusion_pytorch_model.bin
+```
+**Solutions:**
+- Check internet connection
+- Try alternative model: `runwayml/stable-diffusion-v1-5`
+
+**3. Dataset path does not exist**
+```
+FileNotFoundError: [Errno 2] No such file or directory
+```
+**Solutions:**
+- Check paths in CSV file
+- Use absolute paths
+- Ensure file read permissions
+
+**4. W&B authentication**
 ```
 wandb: ERROR Unable to authenticate
 ```
@@ -301,6 +352,193 @@ train_batch_size: 1  # For preprocessing
 # Training with larger batch_size
 train_batch_size: 4  # For actual training
 ```
+
+## 🎨 Example Training Results
+
+### Stable Diffusion Inpainting v1.5 Training Example
+
+This example demonstrates object insertion training using Stable Diffusion Inpainting 1.5 with a real-world dataset.
+
+**Input Images:**
+- **Mask**: `assert/mask_train.jpg` - Defines the insertion region
+- **Object Image**: `assert/object_image_6.png` - Object to be inserted into the scene
+- **Target Image**: `assert/image_train.jpg` - Final composite result (ground truth)
+
+**Training Configuration:**
+```yaml
+model:
+  pretrained_model_name_or_path: botp/stable-diffusion-v1-5-inpainting
+  vae_model_name_or_path: "madebyollin/taesd"
+  is_small_vae: true
+
+image_size: 512
+train_batch_size: 1
+gradient_accumulation_steps: 4
+use_adam8bit: true
+mixed_precision: bf16
+learning_rate: 5.0e-5
+```
+
+**Dataset Format:**
+```csv
+target_image,object_image,mask
+/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/image_train.jpg,/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/object_image_6.png,/home/chaos/Documents/chaos/repo/Light-Diffusion/assert/mask_train.jpg
+```
+
+**Training Process:**
+1. **Preprocessing**: VAE encodes images to latents, text encoder processes prompts
+2. **Training**: UNet learns to insert objects into masked regions
+3. **Validation**: Model generates predictions and compares with target images
+
+**Expected Results:**
+- Model learns to seamlessly blend objects into background scenes
+- Maintains lighting and perspective consistency
+- Preserves object details while adapting to scene context
+
+**Visualization:**
+The training process produces intermediate results showing:
+- Input mask overlay
+- Object placement
+- Final composite output
+- Loss curves tracking training progress
+
+You can monitor training progress through W&B dashboard or checkpoint outputs.
+
+## 🗺️ Roadmap
+
+This section outlines the planned features and improvements for the Light-Diffusion framework.
+
+### Phase 1: Enhanced VRAM-Safe Training Framework (Done)
+
+**Goal**: Develop a comprehensive PyTorch Lightning training framework with ultra-safe VRAM management through advanced configuration options.
+
+**Features:**
+- **Config-based VRAM optimization**: Special configuration flag (`safe_vram_mode: 1`) for maximum memory efficiency
+  - Automatic gradient checkpointing
+  - Dynamic batch size adjustment
+  - Progressive model loading/unloading
+- **Adaptive memory management**: Real-time VRAM monitoring and automatic adjustments
+- **Multi-GPU support**: Distributed training with efficient memory allocation
+- **Training resumption**: Smart checkpoint loading with memory optimization
+
+**Expected Benefits:**
+- Train on GPUs with 8GB+ VRAM
+- Reduced OOM errors through intelligent memory management
+
+### Phase 2: Extended Conditional Training Tasks
+
+**Goal**: Extend framework to support multiple conditional image editing tasks beyond object insertion.
+
+#### 2.1 White Balance Correction
+- **Task**: Automatically correct white balance in images
+- **Input**: Image with incorrect white balance
+- **Output**: Image with corrected color temperature
+- **Use cases**: Photography enhancement, post-processing automation
+- **Dataset format**: `(input_image, target_image, white_balance_params)`
+
+#### 2.2 Object Removal
+- **Task**: Remove unwanted objects from images seamlessly
+- **Input**: Image with mask indicating objects to remove
+- **Output**: Image with objects removed and background inpainting
+- **Use cases**: Photo editing, content moderation, privacy protection
+- **Dataset format**: `(input_image, mask, target_image)`
+
+#### 2.3 Paint-to-Image
+- **Task**: Convert simple sketches/paintings to photorealistic images
+- **Input**: Sketch image with optional color hints
+- **Output**: High-quality rendered image
+- **Use cases**: Concept art visualization, design prototyping
+- **Dataset format**: `(sketch_image, target_image, optional_prompt)`
+
+**Implementation Plan:**
+- Unified architecture supporting multiple task types
+- Task-specific loss functions and data loaders
+- Configurable training pipelines per task
+- Cross-task knowledge transfer capabilities
+
+### Phase 3: Diffusion Transformer (DIT) Architecture Support
+
+**Goal**: Enable efficient training for Diffusion Transformer architectures like Flux and similar models.
+
+#### 3.1 Flux Model Training
+- **Architecture**: DiT (Diffusion Transformer) based models
+- **Features**:
+  - Support for transformer-based diffusion models
+  - Efficient attention mechanisms (Flash Attention, SDPA)
+  - Sequence-based training pipeline
+  - Multi-resolution training support
+- **Optimizations**:
+  - Token-based gradient accumulation
+  - Transformer-specific memory optimizations
+  - Efficient positional encoding handling
+  - Support for variable sequence lengths
+
+#### 3.2 Architecture Adaptations
+- **Modular design**: Easy integration of different DIT variants
+
+**Expected Configuration:**
+```yaml
+model:
+  architecture: dit  # or "flux"
+  pretrained_model_name_or_path: black-forest-labs/FLUX.1-dev
+```
+
+### Phase 4: Qwen-Image-Edit Model Training
+
+**Goal**: Integrate and support training for Qwen-Image-Edit models and similar vision-language editing models.
+
+#### 4.1 Qwen-Image-Edit Integration
+- **Model**: Qwen/Qwen-Image-Edit
+
+**Expected Configuration:**
+```yaml
+model:
+  architecture: qwen-image-edit
+  pretrained_model_name_or_path: Qwen/Qwen-Image-Edit
+  
+```
+
+### Implementation Timeline
+
+**Phase 1** :
+- ✅ Basic VRAM optimization (current)
+- 🔄 Enhanced safe VRAM mode with config flag
+- 🔄 Adaptive memory management
+
+**Phase 2** :
+- 📅 White balance correction task
+- 📅 Object removal task
+- 📅 Paint-to-image task
+
+**Phase 3** :
+- 📅 Flux/DIT architecture support
+- 📅 Transformer-specific optimizations
+- 📅 Multi-resolution training
+
+**Phase 4** :
+- 📅 Qwen-Image-Edit integration
+- 📅 Multi-modal training pipeline
+- 📅 Instruction tuning support
+
+### Contributing
+
+We welcome contributions to help accelerate the roadmap! Areas where contributions are especially valuable:
+
+- **VRAM optimization techniques**: Novel memory-efficient training methods
+- **New task implementations**: Additional conditional training tasks
+- **Architecture support**: Integration of new diffusion model architectures
+- **Documentation**: Tutorials and examples for new features
+- **Testing**: Comprehensive test suites for all features
+
+### Feedback and Suggestions
+
+If you have ideas, feature requests, or want to contribute to any of these roadmap items, please:
+
+1. Open an issue with the `roadmap` label
+2. Discuss in discussions section
+3. Submit a pull request for implementations
+
+---
 
 ## 📞 Support
 
